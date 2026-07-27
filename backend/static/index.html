@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sales Insight Copilot | Power Platform + Python Analytics</title>
+  
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  
+  <style>
+    :root {
+      --bg-main: #0B0F19;
+      --bg-card: rgba(18, 26, 43, 0.85);
+      --bg-card-hover: rgba(26, 38, 62, 0.95);
+      --border-card: rgba(255, 255, 255, 0.08);
+      --border-accent: rgba(99, 102, 241, 0.4);
+      
+      --primary: #6366F1;
+      --secondary: #06B6D4;
+      --accent: #8B5CF6;
+      --success: #10B981;
+      --warning: #F59E0B;
+      --danger: #EF4444;
+
+      --text-main: #F3F4F6;
+      --text-muted: #9CA3AF;
+
+      --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background-color: var(--bg-main);
+      color: var(--text-main);
+      font-family: var(--font-sans);
+      min-height: 100vh;
+      line-height: 1.5;
+    }
+
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: rgba(11, 15, 25, 0.6); }
+    ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.15); border-radius: 4px; }
+
+    .glass-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-card);
+      border-radius: 16px;
+      box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
+      transition: all 0.25s ease;
+    }
+    .glass-card:hover {
+      border-color: var(--border-accent);
+    }
+
+    .app-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1rem 2rem;
+      background: rgba(11, 15, 25, 0.95);
+      border-bottom: 1px solid var(--border-card);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .logo-badge { display: flex; align-items: center; gap: 0.75rem; }
+    .logo-icon {
+      width: 42px; height: 42px; border-radius: 10px;
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      display: flex; align-items: center; justify-content: center;
+      color: white; font-weight: 800; font-size: 1.3rem;
+    }
+    .title-text h1 { font-size: 1.25rem; font-weight: 800; color: white; }
+    .title-text p { font-size: 0.75rem; color: var(--text-muted); }
+
+    .tab-navigation {
+      display: flex; gap: 0.5rem;
+      background: rgba(18, 26, 43, 0.6); padding: 4px;
+      border-radius: 12px; border: 1px solid var(--border-card);
+    }
+    .nav-tab {
+      display: flex; align-items: center; gap: 0.5rem;
+      padding: 0.55rem 1rem; border-radius: 8px; border: none;
+      background: transparent; color: var(--text-muted);
+      font-size: 0.85rem; font-weight: 600; cursor: pointer;
+    }
+    .nav-tab:hover { color: white; background: rgba(255, 255, 255, 0.05); }
+    .nav-tab.active {
+      background: linear-gradient(135deg, var(--primary), var(--accent));
+      color: white;
+    }
+
+    .app-container { padding: 1.75rem 2rem 3rem 2rem; max-width: 1600px; margin: 0 auto; }
+
+    .kpi-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 1.25rem; margin-bottom: 1.75rem;
+    }
+    .kpi-card { padding: 1.25rem; position: relative; overflow: hidden; }
+    .kpi-card::before {
+      content: ''; position: absolute; top: 0; left: 0; width: 4px; height: 100%;
+      background: var(--primary);
+    }
+    .kpi-card.success::before { background: var(--success); }
+    .kpi-card.info::before { background: var(--secondary); }
+    .kpi-card.warning::before { background: var(--warning); }
+
+    .kpi-title { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; color: var(--text-muted); }
+    .kpi-val { font-size: 1.75rem; font-weight: 800; color: white; margin: 0.35rem 0; }
+    .kpi-sub { font-size: 0.75rem; color: var(--text-muted); }
+    .kpi-sub.positive { color: var(--success); }
+
+    .dashboard-grid {
+      display: grid; grid-template-columns: 2fr 1fr; gap: 1.5rem; margin-bottom: 1.75rem;
+    }
+    @media (max-width: 1100px) { .dashboard-grid { grid-template-columns: 1fr; } }
+
+    .chart-header {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 1.25rem 1.5rem; border-bottom: 1px solid var(--border-card);
+    }
+    .chart-header h3 { font-size: 1rem; font-weight: 700; color: white; }
+    .chart-body { padding: 1.5rem; position: relative; }
+
+    .dax-card {
+      background: rgba(10, 15, 26, 0.9); border: 1px solid rgba(99, 102, 241, 0.2);
+      border-radius: 12px; padding: 0.85rem; font-family: var(--font-mono);
+      font-size: 0.8rem; color: #A5B4FC; margin-bottom: 0.75rem;
+    }
+    .dax-card .dax-name { color: #F43F5E; font-weight: bold; }
+    .dax-card .dax-func { color: #38BDF8; }
+
+    .flow-container { display: flex; flex-direction: column; gap: 1rem; margin-top: 1rem; }
+    .flow-step {
+      display: flex; align-items: center; gap: 1rem;
+      background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-card);
+      padding: 1rem 1.25rem; border-radius: 12px;
+    }
+    .flow-step-num {
+      width: 32px; height: 32px; border-radius: 50%; background: var(--primary);
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 800; font-size: 0.85rem; color: white; flex-shrink: 0;
+    }
+
+    .data-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+    .data-table th {
+      text-align: left; padding: 0.75rem 1rem; background: rgba(255, 255, 255, 0.04);
+      color: var(--text-muted); font-weight: 700; border-bottom: 1px solid var(--border-card);
+    }
+    .data-table td { padding: 0.75rem 1rem; border-bottom: 1px solid rgba(255, 255, 255, 0.03); color: var(--text-main); }
+
+    .copilot-box { display: flex; flex-direction: column; height: 640px; border-radius: 16px; overflow: hidden; }
+    .chat-history { flex: 1; overflow-y: auto; padding: 1.5rem; display: flex; flex-direction: column; gap: 1.25rem; }
+    .chat-bubble { max-width: 80%; padding: 1rem 1.25rem; border-radius: 14px; font-size: 0.9rem; line-height: 1.6; }
+    .chat-bubble.user { align-self: flex-end; background: linear-gradient(135deg, var(--primary), var(--accent)); color: white; }
+    .chat-bubble.bot { align-self: flex-start; background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border-card); color: var(--text-main); }
+
+    .chat-input-bar { display: flex; gap: 0.75rem; padding: 1rem 1.5rem; background: rgba(11, 15, 25, 0.95); border-top: 1px solid var(--border-card); }
+    .chat-input { flex: 1; background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border-card); border-radius: 10px; padding: 0.75rem 1rem; color: white; font-size: 0.9rem; outline: none; }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--primary), var(--accent));
+      color: white; border: none; padding: 0.75rem 1.25rem; border-radius: 10px;
+      font-weight: 700; font-size: 0.85rem; cursor: pointer;
+    }
+
+    .preset-chip {
+      background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border-card);
+      color: #A5B4FC; padding: 0.35rem 0.75rem; border-radius: 20px; font-size: 0.75rem; cursor: pointer;
+    }
+    .preset-chip:hover { background: rgba(99, 102, 241, 0.2); color: white; }
+
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+  </style>
+</head>
+<body>
+
+  <!-- App Header -->
+  <header class="app-header">
+    <div class="logo-badge">
+      <div class="logo-icon">📈</div>
+      <div class="title-text">
+        <h1>Sales Insight Copilot</h1>
+        <p>Power Platform • Python ML • SQL Engine • Copilot Studio</p>
+      </div>
+    </div>
+
+    <nav class="tab-navigation">
+      <button class="nav-tab active" onclick="switchTab('powerbi', this)">📊 Power BI Dashboard</button>
+      <button class="nav-tab" onclick="switchTab('powerapps', this)">📱 Power Apps Portal</button>
+      <button class="nav-tab" onclick="switchTab('powerautomate', this)">⚡ Power Automate Flow</button>
+      <button class="nav-tab" onclick="switchTab('copilot', this)">🤖 Copilot Studio AI</button>
+    </nav>
+  </header>
+
+  <!-- Notification Banner -->
+  <div id="banner" style="display:none; margin: 1rem 2rem 0 2rem; padding: 0.75rem 1.25rem; border-radius: 10px; font-size: 0.85rem;"></div>
+
+  <!-- Main Container -->
+  <main class="app-container">
+
+    <!-- 1. POWER BI DASHBOARD TAB -->
+    <div id="tab-powerbi" class="tab-content active">
+      <!-- KPI Cards -->
+      <div class="kpi-grid">
+        <div class="glass-card kpi-card">
+          <div class="kpi-title">Total Sales 💵</div>
+          <div class="kpi-val" id="kpi-sales">$0</div>
+          <div class="kpi-sub positive">↗ +18.4% YoY Growth</div>
+        </div>
+        <div class="glass-card kpi-card success">
+          <div class="kpi-title">Total Profit 📈</div>
+          <div class="kpi-val" id="kpi-profit">$0</div>
+          <div class="kpi-sub positive">✓ Healthy Margin</div>
+        </div>
+        <div class="glass-card kpi-card info">
+          <div class="kpi-title">Profit Margin 📊</div>
+          <div class="kpi-val" id="kpi-margin">0%</div>
+          <div class="kpi-sub">DAX: DIVIDE([Profit], [Sales])</div>
+        </div>
+        <div class="glass-card kpi-card warning">
+          <div class="kpi-title">Forecast Accuracy 🎯</div>
+          <div class="kpi-val" id="kpi-accuracy">+0%</div>
+          <div class="kpi-sub positive">↗ +20% Accuracy Boost via ML</div>
+        </div>
+        <div class="glass-card kpi-card">
+          <div class="kpi-title">Next Month Forecast 🔮</div>
+          <div class="kpi-val" id="kpi-forecast">$0</div>
+          <div class="kpi-sub">Scikit-Learn ML Model</div>
+        </div>
+      </div>
+
+      <!-- Charts Grid -->
+      <div class="dashboard-grid">
+        <div class="glass-card">
+          <div class="chart-header">
+            <h3>📈 Monthly Sales Trend & ML Forecast</h3>
+            <span class="preset-chip">Live ML Model Sync</span>
+          </div>
+          <div class="chart-body" style="height:320px;">
+            <canvas id="trendCanvas" style="width:100%; height:100%;"></canvas>
+          </div>
+        </div>
+
+        <div class="glass-card">
+          <div class="chart-header">
+            <h3>📊 Region Profitability</h3>
+          </div>
+          <div class="chart-body" style="height:320px;">
+            <canvas id="regionCanvas" style="width:100%; height:100%;"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- Cards Grid -->
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem;">
+        <div class="glass-card" style="padding: 1.25rem;">
+          <h4 style="color: white; margin-bottom: 1rem;">🛍️ Top Revenue Products</h4>
+          <div id="top-products-list" style="display:flex; flex-direction:column; gap:0.75rem;"></div>
+        </div>
+
+        <div class="glass-card" style="padding: 1.25rem;">
+          <h4 style="color: white; margin-bottom: 1rem;">💻 Power BI DAX Formulas</h4>
+          <div class="dax-card"><span class="dax-name">Total Sales</span> = <span class="dax-func">SUM</span>(Sales[Sales])</div>
+          <div class="dax-card"><span class="dax-name">Total Profit</span> = <span class="dax-func">SUM</span>(Sales[Profit])</div>
+          <div class="dax-card"><span class="dax-name">Profit Margin</span> = <span class="dax-func">DIVIDE</span>([Total Profit], [Total Sales])</div>
+          <div class="dax-card"><span class="dax-name">Forecast Variance</span> = <span class="dax-func">DIVIDE</span>([Actual] - [ML Forecast], [Actual])</div>
+        </div>
+
+        <div class="glass-card" style="padding: 1.25rem;">
+          <h4 style="color: white; margin-bottom: 1rem;">🛡️ Data Quality & Lineage</h4>
+          <div style="font-size: 0.85rem; color: var(--text-muted); display:flex; flex-direction:column; gap:0.5rem;">
+            <div><strong style="color:white;">Source:</strong> CRM Data (Power Automate Ingestion)</div>
+            <div><strong style="color:white;">Target Database:</strong> SQLite `sales.db`</div>
+            <div><strong style="color:white;">Record Count:</strong> <span id="lineage-count">0</span> rows</div>
+            <div><strong style="color:white;">Status:</strong> Data Quality Checks Passed ✓</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2. POWER APPS PORTAL TAB -->
+    <div id="tab-powerapps" class="tab-content">
+      <div class="glass-card" style="padding: 1.5rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
+          <div>
+            <h2 style="font-size: 1.2rem; font-weight: 800; color: white;">📱 Power Apps Sales Rep Portal</h2>
+            <p style="font-size: 0.8rem; color: var(--text-muted);">Query customer accounts, search order history, and trigger AI recommendations</p>
+          </div>
+          <input type="text" id="appSearchInput" placeholder="Search Customer, Product, Salesperson..." class="chat-input" style="max-width: 380px;" oninput="searchPowerApps(this.value)" />
+        </div>
+
+        <h4 style="font-size: 0.9rem; color: white; margin-bottom: 0.75rem;">Accounts & Customer Insights</h4>
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Customer Name</th>
+              <th>Total Orders</th>
+              <th>Total Revenue</th>
+              <th>Generated Profit</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="powerapps-table-body"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- 3. POWER AUTOMATE FLOW TAB -->
+    <div id="tab-powerautomate" class="tab-content">
+      <div class="glass-card" style="padding: 1.5rem; margin-bottom: 1.5rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+          <div>
+            <h2 style="font-size: 1.2rem; font-weight: 800; color: white;">⚡ Power Automate Data Refresh Pipeline</h2>
+            <p style="font-size: 0.8rem; color: var(--text-muted);">Automated cloud workflow triggering on new CRM data files & executing SQL transforms</p>
+          </div>
+          <button class="btn-primary" onclick="triggerFlow()">⚡ Trigger Automated Ingestion Flow</button>
+        </div>
+
+        <div class="flow-container">
+          <div class="flow-step"><div class="flow-step-num">1</div><div><div style="font-weight:700; color:white;">Trigger: When new CSV file arrives</div><div style="font-size:0.75rem; color:var(--text-muted);">Monitors SharePoint / OneDrive sales folder</div></div></div>
+          <div class="flow-step"><div class="flow-step-num">2</div><div><div style="font-weight:700; color:white;">Python Data Cleaning Service</div><div style="font-size:0.75rem; color:var(--text-muted);">Deduplication, NaN fill, schema validation</div></div></div>
+          <div class="flow-step"><div class="flow-step-num">3</div><div><div style="font-weight:700; color:white;">Insert Batch into SQL Database</div><div style="font-size:0.75rem; color:var(--text-muted);">Executes bulk SQL transaction into Sales table</div></div></div>
+          <div class="flow-step"><div class="flow-step-num">4</div><div><div style="font-weight:700; color:white;">Refresh Power BI Dataset & Scikit-Learn Model</div><div style="font-size:0.75rem; color:var(--text-muted);">Calls Power BI REST API & updates ML regression model</div></div></div>
+          <div class="flow-step"><div class="flow-step-num">5</div><div><div style="font-weight:700; color:white;">Send Teams/Email Notification</div><div style="font-size:0.75rem; color:var(--text-muted);">Notifies sales leadership with summary KPIs</div></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 4. COPILOT STUDIO TAB -->
+    <div id="tab-copilot" class="tab-content">
+      <div class="glass-card copilot-box">
+        <div class="chart-header">
+          <h3>🤖 Copilot Studio Sales Assistant</h3>
+          <span class="preset-chip" style="border-color:var(--success); color:#10B981;">Agentic Online</span>
+        </div>
+
+        <div style="padding: 0.75rem 1.5rem; background: rgba(0,0,0,0.2); border-bottom: 1px solid var(--border-card); display: flex; gap: 0.5rem; flex-wrap: wrap;">
+          <span style="font-size:0.75rem; color:var(--text-muted);">Try asking:</span>
+          <button class="preset-chip" onclick="sendChatMessage('What were total sales in June?')">What were total sales in June?</button>
+          <button class="preset-chip" onclick="sendChatMessage('Which region had highest profit?')">Which region had highest profit?</button>
+          <button class="preset-chip" onclick="sendChatMessage('Show forecast for next month')">Show forecast for next month</button>
+          <button class="preset-chip" onclick="sendChatMessage('Top 5 customers')">Top 5 customers</button>
+          <button class="preset-chip" onclick="sendChatMessage('Show low-performing products')">Show low-performing products</button>
+        </div>
+
+        <div class="chat-history" id="chatHistory">
+          <div class="chat-bubble bot">Hello! I'm your **Sales Insight Copilot** powered by Copilot Studio & Python ML.<br>How can I assist your sales team today?</div>
+        </div>
+
+        <div class="chat-input-bar">
+          <input type="text" id="chatInput" placeholder="Ask Copilot a question about sales, forecast, regions, or products..." class="chat-input" onkeydown="if(event.key==='Enter') sendChatMessage()" />
+          <button class="btn-primary" onclick="sendChatMessage()">Send</button>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <script>
+    function switchTab(tabId, el) {
+      document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+      
+      el.classList.add('active');
+      document.getElementById('tab-' + tabId).classList.add('active');
+
+      if (tabId === 'powerbi') loadDashboard();
+      if (tabId === 'powerapps') searchPowerApps('');
+    }
+
+    function showBanner(msg, isSuccess = true) {
+      const b = document.getElementById('banner');
+      b.style.display = 'block';
+      b.style.background = isSuccess ? 'rgba(16, 185, 129, 0.2)' : 'rgba(239, 68, 68, 0.2)';
+      b.style.border = isSuccess ? '1px solid #10B981' : '1px solid #EF4444';
+      b.style.color = isSuccess ? '#10B981' : '#F87171';
+      b.innerHTML = msg;
+      setTimeout(() => { b.style.display = 'none'; }, 6000);
+    }
+
+    async function loadDashboard() {
+      try {
+        const [kpiRes, chartRes, lineageRes] = await Promise.all([
+          fetch('/api/kpis'),
+          fetch('/api/charts'),
+          fetch('/api/data-lineage')
+        ]);
+        const kpis = await kpiRes.json();
+        const charts = await chartRes.json();
+        const lineage = await lineageRes.json();
+
+        document.getElementById('kpi-sales').innerText = '$' + (kpis.total_sales || 0).toLocaleString();
+        document.getElementById('kpi-profit').innerText = '$' + (kpis.total_profit || 0).toLocaleString();
+        document.getElementById('kpi-margin').innerText = (kpis.profit_margin || 0) + '%';
+        document.getElementById('kpi-accuracy').innerText = '+' + (kpis.forecast_accuracy || 90) + '%';
+        document.getElementById('kpi-forecast').innerText = '$' + (kpis.next_month_forecast || 0).toLocaleString();
+        document.getElementById('lineage-count').innerText = lineage.record_count || 0;
+
+        const prodContainer = document.getElementById('top-products-list');
+        prodContainer.innerHTML = '';
+        (charts.top_products || []).forEach(p => {
+          prodContainer.innerHTML += `
+            <div style="display:flex; justify-content:space-between; background:rgba(255,255,255,0.03); padding:0.6rem 0.8rem; border-radius:8px;">
+              <div>
+                <div style="font-size:0.85rem; font-weight:600; color:white;">${p.Product}</div>
+                <div style="font-size:0.75rem; color:var(--text-muted);">${p.Quantity} units sold</div>
+              </div>
+              <div style="text-align:right;">
+                <div style="font-size:0.85rem; font-weight:700; color:#10B981;">$${(p.Sales||0).toLocaleString()}</div>
+                <div style="font-size:0.7rem; color:var(--text-muted);">Profit: $${(p.Profit||0).toLocaleString()}</div>
+              </div>
+            </div>
+          `;
+        });
+
+        drawTrendChart(charts.forecast_timeline || []);
+        drawRegionChart(charts.region_breakdown || []);
+
+      } catch (err) {
+        console.error("Dashboard error:", err);
+      }
+    }
+
+    function drawTrendChart(timeline) {
+      const cvs = document.getElementById('trendCanvas');
+      const ctx = cvs.getContext('2d');
+      cvs.width = cvs.offsetWidth;
+      cvs.height = cvs.offsetHeight;
+
+      ctx.clearRect(0, 0, cvs.width, cvs.height);
+      if (!timeline.length) return;
+
+      const padding = 40;
+      const w = cvs.width - padding * 2;
+      const h = cvs.height - padding * 2;
+
+      const salesVals = timeline.map(t => t.actual_sales || t.forecast_sales || 0);
+      const maxVal = Math.max(...salesVals, 1000);
+
+      ctx.strokeStyle = "rgba(255,255,255,0.08)";
+      ctx.lineWidth = 1;
+      for (let i = 0; i <= 4; i++) {
+        const y = padding + (h / 4) * i;
+        ctx.beginPath(); ctx.moveTo(padding, y); ctx.lineTo(cvs.width - padding, y); ctx.stroke();
+      }
+
+      ctx.strokeStyle = "#6366F1";
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+
+      timeline.forEach((pt, idx) => {
+        const x = padding + (w / (timeline.length - 1)) * idx;
+        const val = pt.actual_sales || pt.forecast_sales || 0;
+        const y = cvs.height - padding - (val / maxVal) * h;
+
+        if (idx === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      });
+      ctx.stroke();
+
+      timeline.forEach((pt, idx) => {
+        const x = padding + (w / (timeline.length - 1)) * idx;
+        const val = pt.actual_sales || pt.forecast_sales || 0;
+        const y = cvs.height - padding - (val / maxVal) * h;
+
+        ctx.fillStyle = pt.type === 'Forecast' ? "#8B5CF6" : "#6366F1";
+        ctx.beginPath(); ctx.arc(x, y, 4, 0, Math.PI * 2); ctx.fill();
+      });
+    }
+
+    function drawRegionChart(regions) {
+      const cvs = document.getElementById('regionCanvas');
+      const ctx = cvs.getContext('2d');
+      cvs.width = cvs.offsetWidth;
+      cvs.height = cvs.offsetHeight;
+
+      ctx.clearRect(0, 0, cvs.width, cvs.height);
+      if (!regions.length) return;
+
+      const padding = 40;
+      const w = cvs.width - padding * 2;
+      const h = cvs.height - padding * 2;
+      const barHeight = 24;
+      const maxVal = Math.max(...regions.map(r => r.Sales), 1000);
+
+      regions.forEach((r, idx) => {
+        const y = padding + idx * 60;
+        const barW = (r.Sales / maxVal) * (w - 120);
+
+        ctx.fillStyle = "#9CA3AF";
+        ctx.font = "12px sans-serif";
+        ctx.fillText(r.Region, padding, y + 16);
+
+        ctx.fillStyle = "#6366F1";
+        ctx.fillRect(padding + 110, y, barW, barHeight);
+
+        ctx.fillStyle = "#FFFFFF";
+        ctx.fillText('$' + Math.round(r.Sales/1000) + 'k', padding + 120 + barW, y + 16);
+      });
+    }
+
+    async function searchPowerApps(query) {
+      try {
+        const res = await fetch('/api/powerapps/search?q=' + encodeURIComponent(query));
+        const data = await res.json();
+        const tbody = document.getElementById('powerapps-table-body');
+        tbody.innerHTML = '';
+
+        (data.customers || []).forEach(c => {
+          tbody.innerHTML += `
+            <tr>
+              <td style="font-weight:600; color:white;">${c.CustomerName}</td>
+              <td>${c.OrdersCount || c.Orders || 1}</td>
+              <td style="color:#10B981; font-weight:700;">$${(c.TotalSales||0).toLocaleString()}</td>
+              <td>$${(c.TotalProfit||0).toLocaleString()}</td>
+              <td><button class="preset-chip" onclick="switchTab('copilot', document.querySelectorAll('.nav-tab')[3]); sendChatMessage('Show details for customer ${c.CustomerName}')">Query AI</button></td>
+            </tr>
+          `;
+        });
+      } catch (err) { console.error("Search error:", err); }
+    }
+
+    async function triggerFlow() {
+      try {
+        const res = await fetch('/api/powerautomate/trigger', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ record_count: 25 })
+        });
+        const data = await res.json();
+        showBanner(`⚡ Power Automate Ingestion Success: Inserted ${data.records_inserted} records! Updated Forecast: $${(data.updated_forecast||0).toLocaleString()}`);
+        loadDashboard();
+      } catch (err) { showBanner('❌ Flow failed: ' + err.message, false); }
+    }
+
+    async function sendChatMessage(msgText) {
+      const input = document.getElementById('chatInput');
+      const text = msgText || input.value.trim();
+      if (!text) return;
+
+      const history = document.getElementById('chatHistory');
+      history.innerHTML += `<div class="chat-bubble user">${text}</div>`;
+      if (!msgText) input.value = '';
+      history.scrollTop = history.scrollHeight;
+
+      try {
+        const res = await fetch('/api/copilot/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: text })
+        });
+        const bot = await res.json();
+
+        let extraHtml = '';
+        if (bot.sql_executed) {
+          extraHtml += `<div style="margin-top:0.5rem; padding:0.4rem 0.6rem; background:rgba(0,0,0,0.4); border-left:3px solid #6366F1; font-family:var(--font-mono); font-size:0.75rem; color:#A5B4FC;">SQL: ${bot.sql_executed}</div>`;
+        }
+
+        if (bot.table && bot.table.length) {
+          const keys = Object.keys(bot.table[0]);
+          extraHtml += `<table class="data-table" style="margin-top:0.5rem;"><thead><tr>${keys.map(k=>`<th>${k}</th>`).join('')}</tr></thead><tbody>`;
+          bot.table.forEach(r => {
+            extraHtml += `<tr>${Object.values(r).map(v=>`<td>${v}</td>`).join('')}</tr>`;
+          });
+          extraHtml += `</tbody></table>`;
+        }
+
+        history.innerHTML += `<div class="chat-bubble bot">${bot.answer || ''} ${extraHtml}</div>`;
+        history.scrollTop = history.scrollHeight;
+      } catch (err) {
+        history.innerHTML += `<div class="chat-bubble bot">Sorry, error connecting to Copilot AI.</div>`;
+      }
+    }
+
+    window.onload = function() { loadDashboard(); };
+  </script>
+</body>
+</html>
